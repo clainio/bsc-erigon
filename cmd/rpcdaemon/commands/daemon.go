@@ -32,6 +32,8 @@ func APIList(db kv.RoDB, borDb kv.RoDB, eth rpchelper.ApiBackend, txPool txpool.
 	otsImpl := NewOtterscanAPI(base, db)
 	gqlImpl := NewGraphQLAPI(base, db)
 
+	ethTraceImpl := NewEthTraceAPI(base, traceImpl, db, eth, txPool, mining, cfg.Gascap, cfg.ReturnDataLimit )
+
 	if cfg.GraphQLEnabled {
 		list = append(list, rpc.API{
 			Namespace: "graphql",
@@ -40,6 +42,7 @@ func APIList(db kv.RoDB, borDb kv.RoDB, eth rpchelper.ApiBackend, txPool txpool.
 			Version:   "1.0",
 		})
 	}
+
 	bscImpl := NewBscAPI(ethImpl)
 
 	for _, enabledAPI := range cfg.API {
@@ -48,7 +51,7 @@ func APIList(db kv.RoDB, borDb kv.RoDB, eth rpchelper.ApiBackend, txPool txpool.
 			list = append(list, rpc.API{
 				Namespace: "eth",
 				Public:    true,
-				Service:   EthAPI(ethImpl),
+				Service:   EthAPI(ethTraceImpl),
 				Version:   "1.0",
 			})
 		case "debug":

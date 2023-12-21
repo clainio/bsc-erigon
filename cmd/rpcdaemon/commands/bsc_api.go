@@ -107,8 +107,6 @@ func (api *BscAPIImpl) GetTransactionDataAndReceipt(ctx context.Context, hash li
 	}
 
 	txData := map[string]interface{}{
-		"blockHash":        rpcTransaction.BlockHash.String(),
-		"blockNumber":      rpcTransaction.BlockNumber.String(),
 		"from":             rpcTransaction.From.String(),
 		"gas":              rpcTransaction.Gas.String(),
 		"gasPrice":         rpcTransaction.GasPrice.String(),
