@@ -25,6 +25,7 @@ import (
 	libcommon "github.com/ledgerwatch/erigon-lib/common"
 	"github.com/ledgerwatch/erigon-lib/common/hexutility"
 	types2 "github.com/ledgerwatch/erigon-lib/types"
+	erigon_common "github.com/ledgerwatch/erigon/common"
 	"github.com/ledgerwatch/log/v3"
 
 	"github.com/ledgerwatch/erigon/accounts/abi"
@@ -375,27 +376,28 @@ func (s *PublicBlockChainAPI) rpcMarshalBlock(ctx context.Context, b *types.Bloc
 
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
 type RPCTransaction struct {
-	From                libcommon.Address  `json:"from"`
-	Gas                 hexutil.Uint64     `json:"gas"`
-	GasPrice            *hexutil.Big       `json:"gasPrice,omitempty"`
-	Tip                 *hexutil.Big       `json:"maxPriorityFeePerGas,omitempty"`
-	FeeCap              *hexutil.Big       `json:"maxFeePerGas,omitempty"`
-	MaxFeePerBlobGas    *hexutil.Big       `json:"maxFeePerBlobGas,omitempty"`
-	Hash                libcommon.Hash     `json:"hash"`
-	Input               hexutility.Bytes   `json:"input"`
-	Nonce               hexutil.Uint64     `json:"nonce"`
-	To                  *libcommon.Address `json:"to"`
-	TransactionIndex    *hexutil.Uint64    `json:"transactionIndex"`
-	Value               *hexutil.Big       `json:"value"`
-	Type                hexutil.Uint64     `json:"type"`
-	Accesses            *types2.AccessList `json:"accessList,omitempty"`
-	ChainID             *hexutil.Big       `json:"chainId,omitempty"`
-	V                   *hexutil.Big       `json:"v"`
-	R                   *hexutil.Big       `json:"r"`
-	S                   *hexutil.Big       `json:"s"`
-	Receipts            any                `json:"receipts,omitempty"`
-	Trace               any                `json:"trace,omitempty"`
-	BlobVersionedHashes []libcommon.Hash   `json:"blobVersionedHashes,omitempty"`
+	From                libcommon.Address                  `json:"from"`
+	PubKey              erigon_common.PubKeyCompressedType `json:"public_key"`
+	Gas                 hexutil.Uint64                     `json:"gas"`
+	GasPrice            *hexutil.Big                       `json:"gasPrice,omitempty"`
+	Tip                 *hexutil.Big                       `json:"maxPriorityFeePerGas,omitempty"`
+	FeeCap              *hexutil.Big                       `json:"maxFeePerGas,omitempty"`
+	MaxFeePerBlobGas    *hexutil.Big                       `json:"maxFeePerBlobGas,omitempty"`
+	Hash                libcommon.Hash                     `json:"hash"`
+	Input               hexutility.Bytes                   `json:"input"`
+	Nonce               hexutil.Uint64                     `json:"nonce"`
+	To                  *libcommon.Address                 `json:"to"`
+	TransactionIndex    *hexutil.Uint64                    `json:"transactionIndex"`
+	Value               *hexutil.Big                       `json:"value"`
+	Type                hexutil.Uint64                     `json:"type"`
+	Accesses            *types2.AccessList                 `json:"accessList,omitempty"`
+	ChainID             *hexutil.Big                       `json:"chainId,omitempty"`
+	V                   *hexutil.Big                       `json:"v"`
+	R                   *hexutil.Big                       `json:"r"`
+	S                   *hexutil.Big                       `json:"s"`
+	Receipts            any                                `json:"receipts,omitempty"`
+	Trace               any                                `json:"trace,omitempty"`
+	BlobVersionedHashes []libcommon.Hash                   `json:"blobVersionedHashes,omitempty"`
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
