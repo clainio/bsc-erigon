@@ -23,10 +23,8 @@ import (
 	"sync/atomic"
 
 	"github.com/holiman/uint256"
-
 	libcommon "github.com/ledgerwatch/erigon-lib/common"
 	"github.com/ledgerwatch/erigon-lib/common/hexutility"
-
 	"github.com/ledgerwatch/erigon/accounts/abi"
 	"github.com/ledgerwatch/erigon/common"
 	"github.com/ledgerwatch/erigon/common/hexutil"
@@ -137,7 +135,7 @@ func (t *callTracer) CaptureStart(env vm.VMInterface, from libcommon.Address, to
 		From:  from,
 		To:    to,
 		Input: common.CopyBytes(input),
-		Gas:   gas,
+		Gas:   t.gasLimit,
 	}
 	if value != nil {
 		t.callstack[0].Value = value.ToBig()

@@ -962,7 +962,7 @@ func (api *TraceAPIImpl) callManyTransactions(
 	}
 	txs := block.Transactions()
 	callParams := make([]TraceCallParam, 0, len(txs))
-	reader, err := rpchelper.CreateHistoryStateReader(dbtx, blockNumber, txIndex, api.historyV3(dbtx), cfg.ChainName)
+	reader, err := rpchelper.CreateHistoryStateReader(dbtx, blockNumber, txIndex, api.historyV3(dbtx), block.Time(), cfg.ChainName)
 	if err != nil {
 		return nil, err
 	}

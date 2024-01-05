@@ -53,7 +53,14 @@ func (api *OtterscanAPIImpl) genericTracer(dbtx kv.Tx, ctx context.Context, bloc
 		return nil
 	}
 
-	reader, err := rpchelper.CreateHistoryStateReader(dbtx, blockNum, txIndex, api.historyV3(dbtx), chainConfig.ChainName)
+	blockHeader, err := api._blockReader.HeaderByNumber(ctx, dbtx, blockNum+1)
+	if err != nil {
+		return err
+	}
+	if blockHeader == nil {
+		return nil
+	}
+	reader, err := rpchelper.CreateHistoryStateReader(dbtx, blockNum, txIndex, api.historyV3(dbtx), blockHeader.Time, chainConfig.ChainName)
 	if err != nil {
 		return err
 	}

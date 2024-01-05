@@ -762,8 +762,8 @@ func (ms *MockSentry) HeaderDownload() *headerdownload.HeaderDownload {
 	return ms.sentriesClient.Hd
 }
 
-func (ms *MockSentry) NewHistoryStateReader(blockNum uint64, tx kv.Tx) state.StateReader {
-	r, err := rpchelper.CreateHistoryStateReader(tx, blockNum, 0, ms.HistoryV3, ms.ChainConfig.ChainName)
+func (ms *MockSentry) NewHistoryStateReader(blockNum uint64, blockTime uint64, tx kv.Tx) state.StateReader {
+	r, err := rpchelper.CreateHistoryStateReader(tx, blockNum, 0, ms.HistoryV3, blockTime, ms.ChainConfig.ChainName)
 	if err != nil {
 		panic(err)
 	}

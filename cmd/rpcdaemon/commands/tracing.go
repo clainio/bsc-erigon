@@ -290,7 +290,7 @@ func (api *PrivateDebugAPIImpl) TraceCall(ctx context.Context, args ethapi.CallA
 		return err
 	}
 
-	stateReader, err := rpchelper.CreateStateReader(ctx, dbtx, blockNrOrHash, 0, api.filters, api.stateCache, api.historyV3(dbtx), chainConfig.ChainName)
+	stateReader, err := rpchelper.CreateStateReader(ctx, dbtx, blockNrOrHash, 0, api.filters, api.stateCache, api.historyV3(dbtx), api._blockReader, chainConfig.ChainName)
 	if err != nil {
 		return fmt.Errorf("create state reader: %v", err)
 	}
@@ -404,7 +404,7 @@ func (api *PrivateDebugAPIImpl) TraceCallMany(ctx context.Context, bundles []Bun
 
 	replayTransactions = block.Transactions()[:transactionIndex]
 
-	stateReader, err := rpchelper.CreateStateReader(ctx, tx, rpc.BlockNumberOrHashWithNumber(rpc.BlockNumber(blockNum-1)), 0, api.filters, api.stateCache, api.historyV3(tx), chainConfig.ChainName)
+	stateReader, err := rpchelper.CreateStateReader(ctx, tx, rpc.BlockNumberOrHashWithNumber(rpc.BlockNumber(blockNum-1)), 0, api.filters, api.stateCache, api.historyV3(tx), api._blockReader, chainConfig.ChainName)
 	if err != nil {
 		stream.WriteNil()
 		return err
@@ -598,7 +598,7 @@ func (api *PrivateDebugAPIImpl) traceBlockDiff(ctx context.Context, blockNrOrHas
 	engine := api.engine()
 	// do not use state.NewPlainState, use this method, will cause different code in BSC: Cross Chain contract at 4369997
 	//reader := state.NewPlainState(roTx, b.NumberU64(), nil)
-	reader, err := rpchelper.CreateHistoryStateReader(roTx, b.NumberU64(), 0, api.historyV3(roTx), chainConfig.ChainName)
+	reader, err := rpchelper.CreateHistoryStateReader(roTx, b.NumberU64(), 0, api.historyV3(roTx), b.Time(), chainConfig.ChainName)
 	if err != nil {
 		return err
 	}
