@@ -384,7 +384,7 @@ func (s *PublicBlockChainAPI) rpcMarshalBlock(ctx context.Context, b *types.Bloc
 }
 */
 
-// RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction 
+// RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
 type RPCTransaction struct {
 	From                libcommon.Address                  `json:"from"`
 	PubKey              erigon_common.PubKeyCompressedType `json:"public_key"`
