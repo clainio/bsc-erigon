@@ -383,7 +383,7 @@ func (s *PublicBlockChainAPI) rpcMarshalBlock(ctx context.Context, b *types.Bloc
 }
 */
 
-// RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
+// RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction 
 type RPCTransaction struct {
 	BlockHash        *libcommon.Hash    `json:"blockHash"`
 	BlockNumber      *hexutil.Big       `json:"blockNumber"`
