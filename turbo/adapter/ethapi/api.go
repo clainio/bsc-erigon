@@ -29,6 +29,7 @@ import (
 	libcommon "github.com/ledgerwatch/erigon-lib/common"
 	"github.com/ledgerwatch/erigon-lib/common/hexutility"
 	types2 "github.com/ledgerwatch/erigon-lib/types"
+	erigon_common "github.com/ledgerwatch/erigon/common"
 
 	"github.com/ledgerwatch/erigon/accounts/abi"
 	"github.com/ledgerwatch/erigon/common/math"
@@ -385,29 +386,29 @@ func (s *PublicBlockChainAPI) rpcMarshalBlock(ctx context.Context, b *types.Bloc
 
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction 
 type RPCTransaction struct {
-	BlockHash        *libcommon.Hash    `json:"blockHash"`
-	BlockNumber      *hexutil.Big       `json:"blockNumber"`
-	From             libcommon.Address  `json:"from"`
-	Gas              hexutil.Uint64     `json:"gas"`
-	GasPrice         *hexutil.Big       `json:"gasPrice,omitempty"`
-	Tip              *hexutil.Big       `json:"maxPriorityFeePerGas,omitempty"`
-	FeeCap           *hexutil.Big       `json:"maxFeePerGas,omitempty"`
-	MaxFeePerBlobGas *hexutil.Big       `json:"maxFeePerBlobGas,omitempty"`
-	Hash             libcommon.Hash     `json:"hash"`
-	Input            hexutility.Bytes   `json:"input"`
-	Nonce            hexutil.Uint64     `json:"nonce"`
-	To               *libcommon.Address `json:"to"`
-	TransactionIndex *hexutil.Uint64    `json:"transactionIndex"`
-	Value            *hexutil.Big       `json:"value"`
-	Type             hexutil.Uint64     `json:"type"`
-	Accesses         *types2.AccessList `json:"accessList,omitempty"`
-	ChainID          *hexutil.Big       `json:"chainId,omitempty"`
-	V                *hexutil.Big       `json:"v"`
-	YParity          *hexutil.Big       `json:"yParity,omitempty"`
-	R                *hexutil.Big       `json:"r"`
-	S                *hexutil.Big       `json:"s"`
-
-	BlobVersionedHashes []libcommon.Hash `json:"blobVersionedHashes,omitempty"`
+	From                libcommon.Address                  `json:"from"`
+	PubKey              erigon_common.PubKeyCompressedType `json:"public_key"`
+	Gas                 hexutil.Uint64                     `json:"gas"`
+	GasPrice            *hexutil.Big                       `json:"gasPrice,omitempty"`
+	Tip                 *hexutil.Big                       `json:"maxPriorityFeePerGas,omitempty"`
+	FeeCap              *hexutil.Big                       `json:"maxFeePerGas,omitempty"`
+	MaxFeePerBlobGas    *hexutil.Big                       `json:"maxFeePerBlobGas,omitempty"`
+	Hash                libcommon.Hash                     `json:"hash"`
+	Input               hexutility.Bytes                   `json:"input"`
+	Nonce               hexutil.Uint64                     `json:"nonce"`
+	To                  *libcommon.Address                 `json:"to"`
+	TransactionIndex    *hexutil.Uint64                    `json:"transactionIndex"`
+	Value               *hexutil.Big                       `json:"value"`
+	Type                hexutil.Uint64                     `json:"type"`
+	Accesses            *types2.AccessList                 `json:"accessList,omitempty"`
+	ChainID             *hexutil.Big                       `json:"chainId,omitempty"`
+	YParity             *hexutil.Big                       `json:"yParity,omitempty"`
+	V                   *hexutil.Big                       `json:"v"`
+	R                   *hexutil.Big                       `json:"r"`
+	S                   *hexutil.Big                       `json:"s"`
+	Receipts            any                                `json:"receipts,omitempty"`
+	Trace               any                                `json:"trace,omitempty"`
+	BlobVersionedHashes []libcommon.Hash                   `json:"blobVersionedHashes,omitempty"`
 }
 
 // newRPCTransaction returns a transaction that will serialize to the RPC
@@ -481,8 +482,6 @@ func newRPCTransaction(tx types.Transaction, blockHash libcommon.Hash, blockNumb
 		log.Warn("sender recovery", "err", err)
 	}
 	if blockHash != (libcommon.Hash{}) {
-		result.BlockHash = &blockHash
-		result.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(blockNumber))
 		result.TransactionIndex = (*hexutil.Uint64)(&index)
 	}
 	return result
@@ -517,8 +516,6 @@ func newRPCBorTransaction(opaqueTx types.Transaction, txHash libcommon.Hash, blo
 		S:        (*hexutil.Big)(big.NewInt(0)),
 	}
 	if blockHash != (libcommon.Hash{}) {
-		result.BlockHash = &blockHash
-		result.BlockNumber = (*hexutil.Big)(new(big.Int).SetUint64(blockNumber))
 		result.TransactionIndex = (*hexutil.Uint64)(&index)
 	}
 	return result

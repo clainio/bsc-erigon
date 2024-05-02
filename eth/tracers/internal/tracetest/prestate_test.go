@@ -98,7 +98,7 @@ func testPrestateDiffTracer(tracerName string, dirPath string, t *testing.T) {
 			// Configure a blockchain with the given prestate
 			var (
 				signer    = types.MakeSigner(test.Genesis.Config, uint64(test.Context.Number), uint64(test.Context.Time))
-				origin, _ = signer.Sender(tx)
+				origin, _ ,_= signer.Sender(tx)
 				txContext = evmtypes.TxContext{
 					Origin:   origin,
 					GasPrice: tx.GetFeeCap(),

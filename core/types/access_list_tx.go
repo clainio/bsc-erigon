@@ -508,7 +508,7 @@ func (tx *AccessListTx) Sender(signer Signer) (libcommon.Address, error) {
 	if sc := tx.from.Load(); sc != nil {
 		return sc.(libcommon.Address), nil
 	}
-	addr, err := signer.Sender(tx)
+	addr,_, err := signer.Sender(tx)
 	if err != nil {
 		return libcommon.Address{}, err
 	}

@@ -605,7 +605,7 @@ Loop:
 				if sender, ok := txs[txIndex].GetSender(); ok {
 					txTask.Sender = &sender
 				} else {
-					sender, err := signer.Sender(txTask.Tx)
+					sender, _,err := signer.Sender(txTask.Tx)
 					if err != nil {
 						return err
 					}

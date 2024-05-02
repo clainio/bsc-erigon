@@ -84,7 +84,7 @@ func (stx *BlobTx) Sender(signer Signer) (libcommon.Address, error) {
 	if sc := stx.from.Load(); sc != nil {
 		return sc.(libcommon.Address), nil
 	}
-	addr, err := signer.Sender(stx)
+	addr,_, err := signer.Sender(stx)
 	if err != nil {
 		return libcommon.Address{}, err
 	}
