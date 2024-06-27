@@ -3,9 +3,6 @@ package jsonrpc
 import (
 	"context"
 	"fmt"
-	"math/big"
-
-	"github.com/ledgerwatch/erigon-lib/common"
 
 	erigon_common "github.com/ledgerwatch/erigon/common"
 	"github.com/ledgerwatch/erigon/crypto"
@@ -13,7 +10,6 @@ import (
 
 	"github.com/ledgerwatch/erigon-lib/gointerfaces/txpool"
 	"github.com/ledgerwatch/erigon-lib/kv"
-	"github.com/ledgerwatch/erigon/consensus/ethash"
 	"github.com/ledgerwatch/erigon/core/types"
 
 	"github.com/ledgerwatch/erigon/common/math"
@@ -26,7 +22,6 @@ import (
 )
 
 const enable_testing bool = true
-
 
 type APIEthTraceImpl struct {
 	APIImpl
@@ -103,18 +98,18 @@ func (api *APIEthTraceImpl) GetBlockReceiptsTrace(ctx context.Context, numberOrH
 	if err != nil {
 		return nil, err
 	}
-	block, err := api.blockWithSenders(tx, blockHash, blockNum)
+	block, err := api.blockWithSenders(ctx, tx, blockHash, blockNum)
 	if err != nil {
 		return nil, err
 	}
 	if block == nil {
 		return nil, fmt.Errorf("could not find block  %d", blockNum)
 	}
-	chainConfig, err := api.chainConfig(tx)
+	chainConfig, err := api.chainConfig(ctx, tx)
 	if err != nil {
 		return nil, err
 	}
-	receipts, err := api.getReceipts(ctx, tx, chainConfig, block, block.Body().SendersFromTxs())
+	receipts, err := api.getReceipts(ctx, tx, block, block.Body().SendersFromTxs())
 	if err != nil {
 		return nil, fmt.Errorf("getReceipts error: %w", err)
 	}
@@ -152,7 +147,7 @@ func (api *APIEthTraceImpl) GetBlockReceiptsTrace(ctx context.Context, numberOrH
 	traceTypeTrace = true
 
 	signer := types.MakeSigner(chainConfig, blockNum, block.Time())
-	traces,_, err := api.traceImpl.callManyTransactions(ctx, tx, block, traceTypes, -1 /* all tx indices */, *gasBailOut, signer, chainConfig)
+	traces, _, err := api.traceImpl.callManyTransactions(ctx, tx, block, traceTypes, -1 /* all tx indices */, *gasBailOut, signer, chainConfig)
 
 	if err != nil {
 		if len(result) > 0 {
@@ -180,47 +175,6 @@ func (api *APIEthTraceImpl) GetBlockReceiptsTrace(ctx context.Context, numberOrH
 	}
 
 	parity_traces := make([]ParityTrace, 0)
-
-	difficulty := block.Difficulty()
-
-	minerReward, uncleRewards := ethash.AccumulateRewards(chainConfig, block.Header(), block.Uncles())
-	var tr ParityTrace
-	var rewardAction = &RewardTraceAction{}
-	rewardAction.Author = block.Coinbase()
-	rewardAction.RewardType = "block" // nolint: goconst
-	if difficulty.Cmp(big.NewInt(0)) != 0 {
-		// block reward is not returned in POS
-		rewardAction.Value.ToInt().Set(minerReward.ToBig())
-	}
-	tr.Action = rewardAction
-	tr.BlockHash = &common.Hash{}
-	copy(tr.BlockHash[:], block.Hash().Bytes())
-	tr.BlockNumber = new(uint64)
-	*tr.BlockNumber = block.NumberU64()
-	tr.Type = "reward" // nolint: goconst
-	tr.TraceAddress = []int{}
-	parity_traces = append(parity_traces, tr)
-
-	// Uncles are not returned in POS
-	if difficulty.Cmp(big.NewInt(0)) != 0 {
-		for i, uncle := range block.Uncles() {
-			if i < len(uncleRewards) {
-				var tr ParityTrace
-				rewardAction = &RewardTraceAction{}
-				rewardAction.Author = uncle.Coinbase
-				rewardAction.RewardType = "uncle" // nolint: goconst
-				rewardAction.Value.ToInt().Set(uncleRewards[i].ToBig())
-				tr.Action = rewardAction
-				tr.BlockHash = &common.Hash{}
-				copy(tr.BlockHash[:], block.Hash().Bytes())
-				tr.BlockNumber = new(uint64)
-				*tr.BlockNumber = block.NumberU64()
-				tr.Type = "reward" // nolint: goconst
-				tr.TraceAddress = []int{}
-				parity_traces = append(parity_traces, tr)
-			}
-		}
-	}
 
 	if len(parity_traces) > 0 {
 		block_trxs_enriched["rewards"] = parity_traces
@@ -273,4 +227,5 @@ func (api *APIEthTraceImpl) GetBlockReceiptsTrace(ctx context.Context, numberOrH
 		trx.PubKey = erigon_common.PubKeyCompressedType(compressed_pub_key)
 	}
 
-	return block_trxs_enriched, nil}
+	return block_trxs_enriched, nil
+}
