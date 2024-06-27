@@ -109,7 +109,7 @@ type Header struct {
 	// The verkle proof is ignored in legacy headers
 	Verkle        bool
 	VerkleProof   []byte
-	VerkleKeyVals []verkle.LeafNode // TODO @blxdyx Change for go1.21
+	VerkleKeyVals []verkle.KeyValuePair
 }
 
 func (h *Header) EncodingSize() int {
@@ -1286,7 +1286,7 @@ func (b *Block) HashCheck() error {
 		return fmt.Errorf("block has invalid uncle hash: have %x, exp: %x", hash, b.UncleHash())
 	}
 
-	if b.WithdrawalsHash() == nil || *b.WithdrawalsHash() == EmptyRootHash {
+	if b.WithdrawalsHash() == nil {
 		if b.Withdrawals() != nil {
 			return errors.New("header missing WithdrawalsHash")
 		}

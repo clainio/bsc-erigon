@@ -29,6 +29,8 @@ import (
 	"github.com/ledgerwatch/erigon-lib/kv/dbutils"
 
 	"github.com/gballet/go-verkle"
+	"github.com/ledgerwatch/log/v3"
+
 	"github.com/ledgerwatch/erigon-lib/common"
 	"github.com/ledgerwatch/erigon-lib/common/cmp"
 	"github.com/ledgerwatch/erigon-lib/common/dbg"
@@ -36,7 +38,6 @@ import (
 	"github.com/ledgerwatch/erigon-lib/common/length"
 	"github.com/ledgerwatch/erigon-lib/kv"
 	"github.com/ledgerwatch/erigon-lib/kv/rawdbv3"
-	"github.com/ledgerwatch/log/v3"
 
 	"github.com/ledgerwatch/erigon/core/types"
 	"github.com/ledgerwatch/erigon/ethdb/cbor"
@@ -146,6 +147,8 @@ func WriteHeaderNumber(db kv.Putter, hash common.Hash, number uint64) error {
 }
 
 // ReadHeadHeaderHash retrieves the hash of the current canonical head header.
+// It is updated in stage_headers, updateForkChoice.
+// See: ReadHeadBlockHash
 func ReadHeadHeaderHash(db kv.Getter) common.Hash {
 	data, err := db.GetOne(kv.HeadHeaderKey, []byte(kv.HeadHeaderKey))
 	if err != nil {
@@ -158,6 +161,8 @@ func ReadHeadHeaderHash(db kv.Getter) common.Hash {
 }
 
 // WriteHeadHeaderHash stores the hash of the current canonical head header.
+// It is updated in stage_headers, updateForkChoice.
+// See: WriteHeadBlockHash
 func WriteHeadHeaderHash(db kv.Putter, hash common.Hash) error {
 	if err := db.Put(kv.HeadHeaderKey, []byte(kv.HeadHeaderKey), hash.Bytes()); err != nil {
 		return fmt.Errorf("failed to store last header's hash: %w", err)
@@ -165,7 +170,9 @@ func WriteHeadHeaderHash(db kv.Putter, hash common.Hash) error {
 	return nil
 }
 
-// ReadHeadBlockHash retrieves the hash of the current canonical head block.
+// ReadHeadBlockHash retrieves the hash of the current canonical head header for which its block body is known.
+// It is updated in stage_finish.
+// See: kv.HeadBlockKey
 func ReadHeadBlockHash(db kv.Getter) common.Hash {
 	data, err := db.GetOne(kv.HeadBlockKey, []byte(kv.HeadBlockKey))
 	if err != nil {
@@ -177,7 +184,9 @@ func ReadHeadBlockHash(db kv.Getter) common.Hash {
 	return common.BytesToHash(data)
 }
 
-// WriteHeadBlockHash stores the head block's hash.
+// WriteHeadBlockHash stores the hash of the current canonical head header for which its block body is known.
+// It is updated in stage_finish.
+// See: kv.HeadBlockKey
 func WriteHeadBlockHash(db kv.Putter, hash common.Hash) {
 	if err := db.Put(kv.HeadBlockKey, []byte(kv.HeadBlockKey), hash.Bytes()); err != nil {
 		log.Crit("Failed to store last block's hash", "err", err)
@@ -275,8 +284,23 @@ func ReadCurrentBlockNumber(db kv.Getter) *uint64 {
 	return ReadHeaderNumber(db, headHash)
 }
 
+// ReadCurrentHeader reads the current canonical head header.
+// It is updated in stage_headers, updateForkChoice.
+// See: ReadHeadHeaderHash, ReadCurrentHeaderHavingBody
 func ReadCurrentHeader(db kv.Getter) *types.Header {
 	headHash := ReadHeadHeaderHash(db)
+	headNumber := ReadHeaderNumber(db, headHash)
+	if headNumber == nil {
+		return nil
+	}
+	return ReadHeader(db, headHash, *headNumber)
+}
+
+// ReadCurrentHeaderHavingBody reads the current canonical head header for which its block body is known.
+// It is updated in stage_finish.
+// See: ReadHeadBlockHash, ReadCurrentHeader
+func ReadCurrentHeaderHavingBody(db kv.Getter) *types.Header {
+	headHash := ReadHeadBlockHash(db)
 	headNumber := ReadHeaderNumber(db, headHash)
 	if headNumber == nil {
 		return nil
@@ -918,7 +942,7 @@ func AppendReceipts(tx kv.StatelessWriteTx, blockNumber uint64, receipts types.R
 	return nil
 }
 
-// TruncateReceipts removes all receipt for given block number or newer
+// TruncateReceipts removes all receipt for given block number or newer - used for Unwind
 func TruncateReceipts(db kv.RwTx, number uint64) error {
 	if err := db.ForEach(kv.Receipts, hexutility.EncodeTs(number), func(k, _ []byte) error {
 		return db.Delete(kv.Receipts, k)
@@ -1067,65 +1091,6 @@ func PruneBlocks(tx kv.RwTx, blockTo uint64, blocksDeleteLimit int) error {
 		}
 	}
 
-	return nil
-}
-
-// PruneBorBlocks - delete [1, to) old blocks after moving it to snapshots.
-// keeps genesis in db: [1, to)
-// doesn't change sequences of kv.EthTx and kv.NonCanonicalTxs
-// doesn't delete Receipts, Senders, Canonical markers, TotalDifficulty
-func PruneBorBlocks(tx kv.RwTx, blockTo uint64, blocksDeleteLimit int, SpanIdAt func(number uint64) uint64) error {
-	c, err := tx.Cursor(kv.BorEventNums)
-	if err != nil {
-		return err
-	}
-	defer c.Close()
-	var blockNumBytes [8]byte
-	binary.BigEndian.PutUint64(blockNumBytes[:], blockTo)
-	k, v, err := c.Seek(blockNumBytes[:])
-	if err != nil {
-		return err
-	}
-	var eventIdTo uint64 = math.MaxUint64
-	if k != nil {
-		eventIdTo = binary.BigEndian.Uint64(v)
-	}
-	c1, err := tx.RwCursor(kv.BorEvents)
-	if err != nil {
-		return err
-	}
-	defer c1.Close()
-	counter := blocksDeleteLimit
-	for k, _, err = c1.First(); err == nil && k != nil && counter > 0; k, _, err = c1.Next() {
-		eventId := binary.BigEndian.Uint64(k)
-		if eventId >= eventIdTo {
-			break
-		}
-		if err = c1.DeleteCurrent(); err != nil {
-			return err
-		}
-		counter--
-	}
-	if err != nil {
-		return err
-	}
-	firstSpanToKeep := SpanIdAt(blockTo)
-	c2, err := tx.RwCursor(kv.BorSpans)
-	if err != nil {
-		return err
-	}
-	defer c2.Close()
-	counter = blocksDeleteLimit
-	for k, _, err := c2.First(); err == nil && k != nil && counter > 0; k, _, err = c2.Next() {
-		spanId := binary.BigEndian.Uint64(k)
-		if spanId >= firstSpanToKeep {
-			break
-		}
-		if err = c2.DeleteCurrent(); err != nil {
-			return err
-		}
-		counter--
-	}
 	return nil
 }
 
