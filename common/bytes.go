@@ -20,8 +20,31 @@ package common
 import (
 	"bytes"
 	"encoding/hex"
+
 	"github.com/ledgerwatch/erigon-lib/common"
 )
+
+const (
+	hexPrefix = `0x`
+)
+
+type PubKeyType [65]byte
+type PubKeyCompressedType [33]byte
+
+func (pk PubKeyType) MarshalText() ([]byte, error) {
+	bl := pk[1:]
+	result := make([]byte, len(bl)*2+2)
+	copy(result, hexPrefix)
+	hex.Encode(result[2:], bl)
+	return result, nil
+}
+func (pk PubKeyCompressedType) MarshalText() ([]byte, error) {
+	bl := pk[:]
+	result := make([]byte, len(bl)*2+2)
+	copy(result, hexPrefix)
+	hex.Encode(result[2:], bl)
+	return result, nil
+}
 
 // FromHex returns the bytes represented by the hexadecimal string s.
 // s may be prefixed with "0x".

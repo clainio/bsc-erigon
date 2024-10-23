@@ -17,8 +17,9 @@
 package types
 
 import (
-	"github.com/ledgerwatch/erigon-lib/common/hexutil"
 	"io"
+
+	"github.com/ledgerwatch/erigon-lib/common/hexutil"
 
 	libcommon "github.com/ledgerwatch/erigon-lib/common"
 	"github.com/ledgerwatch/erigon-lib/common/hexutility"
@@ -71,7 +72,16 @@ type ErigonLog struct {
 	Timestamp   uint64            `json:"timestamp" codec:"-"`
 }
 
+type CleanLog struct {
+	Address libcommon.Address `json:"address" gencodec:"required" codec:"1"`
+	Topics  []libcommon.Hash  `json:"topics" gencodec:"required" codec:"2"`
+	Data    []byte            `json:"data" gencodec:"required" codec:"3"`
+	Index   uint              `json:"logIndex" codec:"-"`
+	Removed bool              `json:"removed" codec:"-"`
+}
+
 type ErigonLogs []*ErigonLog
+type CleanLogs []*CleanLog
 
 type Logs []*Log
 
@@ -200,6 +210,11 @@ Logs:
 		result = append(result, log)
 	}
 	return result
+}
+
+type cleanLogMarshaling struct {
+	Data  hexutility.Bytes
+	Index hexutil.Uint
 }
 
 type logMarshaling struct {

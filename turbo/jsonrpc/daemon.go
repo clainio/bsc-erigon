@@ -36,17 +36,19 @@ func APIList(db kv.RoDB, eth rpchelper.ApiBackend, txPool txpool.TxpoolClient, m
 	adminImpl := NewAdminAPI(eth)
 	parityImpl := NewParityAPIImpl(base, db)
 
-	var bscImpl *BscImpl
 	var borImpl *BorImpl
+	ethTraceImpl := NewEthTraceAPI(base, traceImpl, db, eth, txPool, mining, cfg.Gascap, cfg.ReturnDataLimit)
 
 	type lazy interface {
 		HasEngine() bool
 		Engine() consensus.EngineReader
 	}
 
+	bscImpl := NewBscAPI(ethImpl)
+
 	switch engine := engine.(type) {
 	case *parlia.Parlia:
-		bscImpl = NewBscAPI(ethImpl)
+		bscImpl = NewBscAPI(&ethTraceImpl.APIImpl)
 	case *bor.Bor:
 		borImpl = NewBorAPI(base, db)
 	case lazy:
@@ -54,7 +56,7 @@ func APIList(db kv.RoDB, eth rpchelper.ApiBackend, txPool txpool.TxpoolClient, m
 			borImpl = NewBorAPI(base, db)
 		}
 		if _, ok := engine.Engine().(*parlia.Parlia); !engine.HasEngine() || ok {
-			bscImpl = NewBscAPI(ethImpl)
+			bscImpl = NewBscAPI(&ethTraceImpl.APIImpl)
 		}
 	}
 
@@ -77,7 +79,7 @@ func APIList(db kv.RoDB, eth rpchelper.ApiBackend, txPool txpool.TxpoolClient, m
 			list = append(list, rpc.API{
 				Namespace: "eth",
 				Public:    true,
-				Service:   EthAPI(ethImpl),
+				Service:   EthAPI(ethTraceImpl),
 				Version:   "1.0",
 			})
 		case "debug":

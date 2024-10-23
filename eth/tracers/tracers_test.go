@@ -20,9 +20,10 @@ import (
 	"crypto/ecdsa"
 	"crypto/rand"
 	"encoding/json"
-	"github.com/ledgerwatch/erigon-lib/common/hexutil"
 	"math/big"
 	"testing"
+
+	"github.com/ledgerwatch/erigon-lib/common/hexutil"
 
 	libcommon "github.com/ledgerwatch/erigon-lib/common"
 	"github.com/ledgerwatch/erigon/core"
@@ -65,7 +66,7 @@ func TestPrestateTracerCreate2(t *testing.T) {
 	    gas (assuming no mem expansion): 32006
 	    result: 0x60f3f640a8508fC6a86d45DF051962668E1e8AC7
 	*/
-	origin, _ := signer.Sender(txn)
+	origin, _, _ := signer.Sender(txn)
 	txContext := evmtypes.TxContext{
 		Origin:   origin,
 		GasPrice: uint256.NewInt(1),
