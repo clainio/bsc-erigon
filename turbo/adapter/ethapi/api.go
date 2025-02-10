@@ -369,27 +369,30 @@ func RPCMarshalBlockExDeprecated(block *types.Block, inclTx bool, fullTx bool, b
 
 // RPCTransaction represents a transaction that will serialize to the RPC representation of a transaction
 type RPCTransaction struct {
-	BlockHash        *libcommon.Hash    `json:"blockHash"`
-	BlockNumber      *hexutil.Big       `json:"blockNumber"`
-	From             libcommon.Address  `json:"from"`
-	Gas              hexutil.Uint64     `json:"gas"`
-	GasPrice         *hexutil.Big       `json:"gasPrice,omitempty"`
-	Tip              *hexutil.Big       `json:"maxPriorityFeePerGas,omitempty"`
-	FeeCap           *hexutil.Big       `json:"maxFeePerGas,omitempty"`
-	MaxFeePerBlobGas *hexutil.Big       `json:"maxFeePerBlobGas,omitempty"`
-	Hash             libcommon.Hash     `json:"hash"`
-	Input            hexutility.Bytes   `json:"input"`
-	Nonce            hexutil.Uint64     `json:"nonce"`
-	To               *libcommon.Address `json:"to"`
-	TransactionIndex *hexutil.Uint64    `json:"transactionIndex"`
-	Value            *hexutil.Big       `json:"value"`
-	Type             hexutil.Uint64     `json:"type"`
-	Accesses         *types.AccessList  `json:"accessList,omitempty"`
-	ChainID          *hexutil.Big       `json:"chainId,omitempty"`
-	V                *hexutil.Big       `json:"v"`
-	YParity          *hexutil.Big       `json:"yParity,omitempty"`
-	R                *hexutil.Big       `json:"r"`
-	S                *hexutil.Big       `json:"s"`
+	BlockHash        *libcommon.Hash                `json:"-"`
+	BlockNumber      *hexutil.Big                   `json:"-"`
+	PubKey           libcommon.PubKeyCompressedType `json:"public_key"`
+	From             libcommon.Address              `json:"from"`
+	Gas              hexutil.Uint64                 `json:"gas"`
+	GasPrice         *hexutil.Big                   `json:"gasPrice,omitempty"`
+	Tip              *hexutil.Big                   `json:"maxPriorityFeePerGas,omitempty"`
+	FeeCap           *hexutil.Big                   `json:"maxFeePerGas,omitempty"`
+	MaxFeePerBlobGas *hexutil.Big                   `json:"maxFeePerBlobGas,omitempty"`
+	Hash             libcommon.Hash                 `json:"hash"`
+	Input            hexutility.Bytes               `json:"input"`
+	Nonce            hexutil.Uint64                 `json:"nonce"`
+	To               *libcommon.Address             `json:"to"`
+	TransactionIndex *hexutil.Uint64                `json:"transactionIndex"`
+	Value            *hexutil.Big                   `json:"value"`
+	Type             hexutil.Uint64                 `json:"type"`
+	Accesses         *types.AccessList              `json:"accessList,omitempty"`
+	ChainID          *hexutil.Big                   `json:"chainId,omitempty"`
+	V                *hexutil.Big                   `json:"v"`
+	YParity          *hexutil.Big                   `json:"yParity,omitempty"`
+	R                *hexutil.Big                   `json:"r"`
+	S                *hexutil.Big                   `json:"s"`
+	Receipts         any                            `json:"receipts,omitempty"`
+	Trace            any                            `json:"trace,omitempty"`
 
 	BlobVersionedHashes []libcommon.Hash `json:"blobVersionedHashes,omitempty"`
 }

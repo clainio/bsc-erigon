@@ -55,8 +55,6 @@ func MarshalReceipt(
 	}
 
 	fields := map[string]interface{}{
-		"blockHash":         receipt.BlockHash,
-		"blockNumber":       hexutil.Uint64(receipt.BlockNumber.Uint64()),
 		"transactionHash":   txnHash,
 		"transactionIndex":  hexutil.Uint64(receipt.TransactionIndex),
 		"from":              from,
