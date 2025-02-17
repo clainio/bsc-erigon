@@ -824,7 +824,7 @@ var (
 	CaplinDiscoveryAddrFlag = cli.StringFlag{
 		Name:  "caplin.discovery.addr",
 		Usage: "Address for Caplin DISCV5 protocol",
-		Value: "127.0.0.1",
+		Value: "0.0.0.0",
 	}
 	CaplinDiscoveryPortFlag = cli.Uint64Flag{
 		Name:  "caplin.discovery.port",
@@ -1113,6 +1113,14 @@ var (
 	ShutterP2pListenPortFlag = cli.UintFlag{
 		Name:  "shutter.p2p.listen.port",
 		Usage: "Use to override the default p2p listen port (defaults to 23102)",
+	}
+	PolygonPosSingleSlotFinalityFlag = cli.BoolFlag{
+		Name:  "polygon.pos.ssf",
+		Usage: "Enabling Polygon PoS Single Slot Finality",
+	}
+	PolygonPosSingleSlotFinalityBlockAtFlag = cli.Int64Flag{
+		Name:  "polygon.pos.ssf.block",
+		Usage: "Enabling Polygon PoS Single Slot Finality since block",
 	}
 )
 
@@ -1727,6 +1735,9 @@ func setBorConfig(ctx *cli.Context, cfg *ethconfig.Config, nodeConfig *nodecfg.C
 		nodeConfig.P2P.MaxPeers = 100
 		logger.Info("Maximum peer count default sanitizing for bor", "total", nodeConfig.P2P.MaxPeers)
 	}
+
+	cfg.PolygonPosSingleSlotFinality = ctx.Bool(PolygonPosSingleSlotFinalityFlag.Name)
+	cfg.PolygonPosSingleSlotFinalityBlockAt = ctx.Uint64(PolygonPosSingleSlotFinalityBlockAtFlag.Name)
 }
 
 func setMiner(ctx *cli.Context, cfg *params.MiningConfig) {
@@ -1981,7 +1992,6 @@ func SetEthConfig(ctx *cli.Context, nodeConfig *nodecfg.Config, cfg *ethconfig.C
 		cfg.Genesis = genesis
 		SetDNSDiscoveryDefaults(cfg, *genesisHash)
 	case networkname.Rialto:
-		return
 	case "":
 		if cfg.NetworkID == 1 {
 			SetDNSDiscoveryDefaults(cfg, params.MainnetGenesisHash)

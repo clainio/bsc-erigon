@@ -31,9 +31,9 @@ type BscAPI interface {
 	GetTransactionReceiptsByBlockNumber(ctx context.Context, number rpc.BlockNumberOrHash) ([]map[string]interface{}, error)
 	Health(ctx context.Context) bool
 	Resend(ctx context.Context, sendArgs map[string]interface{}, gasPrice *hexutil.Big, gasLimit *hexutil.Uint64) (libcommon.Hash, error)
-	GetTransactionsByBlockNumber(ctx context.Context, blockNr rpc.BlockNumber) ([]*RPCTransaction, error)
+	GetTransactionsByBlockNumber(ctx context.Context, blockNr rpc.BlockNumber) ([]*ethapi.RPCTransaction, error)
 	GetVerifyResult(ctx context.Context, blockNr rpc.BlockNumber, blockHash libcommon.Hash, diffHash libcommon.Hash) ([]map[string]interface{}, error)
-	PendingTransactions() ([]*RPCTransaction, error)
+	PendingTransactions() ([]*ethapi.RPCTransaction, error)
 	GetBlobSidecars(ctx context.Context, numberOrHash rpc.BlockNumberOrHash, fullBlob *bool) ([]map[string]interface{}, error)
 	GetBlobSidecarByTxHash(ctx context.Context, hash libcommon.Hash, fullBlob *bool) (map[string]interface{}, error)
 	GetFinalizedHeader(ctx context.Context, verifiedValidatorNum int64) (map[string]interface{}, error)
@@ -194,7 +194,7 @@ func (api *BscImpl) Resend(ctx context.Context, sendArgs map[string]interface{},
 }
 
 // GetTransactionsByBlockNumber returns all the transactions for the given block number.
-func (api *BscImpl) GetTransactionsByBlockNumber(ctx context.Context, blockNr rpc.BlockNumber) ([]*RPCTransaction, error) {
+func (api *BscImpl) GetTransactionsByBlockNumber(ctx context.Context, blockNr rpc.BlockNumber) ([]*ethapi.RPCTransaction, error) {
 	tx, beginErr := api.ethApi.db.BeginRo(ctx)
 	if beginErr != nil {
 		return nil, beginErr
@@ -205,9 +205,9 @@ func (api *BscImpl) GetTransactionsByBlockNumber(ctx context.Context, blockNr rp
 		return nil, err
 	}
 	txes := block.Transactions()
-	result := make([]*RPCTransaction, 0, len(txes))
+	result := make([]*ethapi.RPCTransaction, 0, len(txes))
 	for idx, tx := range txes {
-		result = append(result, NewRPCTransaction(tx, block.Hash(), block.NumberU64(), uint64(idx), block.BaseFee()))
+		result = append(result, ethapi.NewRPCTransaction(tx, block.Hash(), block.NumberU64(), uint64(idx), block.BaseFee()))
 	}
 	return result, nil
 }
@@ -222,7 +222,7 @@ func (api *BscImpl) GetVerifyResult(ctx context.Context, blockNr rpc.BlockNumber
 
 // PendingTransactions returns the transactions that are in the transaction pool
 // and have a from address that is one of the accounts this node manages.
-func (api *BscImpl) PendingTransactions() ([]*RPCTransaction, error) {
+func (api *BscImpl) PendingTransactions() ([]*ethapi.RPCTransaction, error) {
 	return nil, fmt.Errorf(NotImplemented, "eth_pendingTransactions")
 }
 

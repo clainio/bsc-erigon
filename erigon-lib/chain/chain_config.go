@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"time"
 
 	"github.com/erigontech/erigon-lib/common"
 	"github.com/erigontech/erigon-lib/common/fixedgas"
@@ -91,11 +92,9 @@ type Config struct {
 	HertzBlock      *big.Int `json:"hertzBlock,omitempty" toml:",omitempty"`      // hertzBlock switch block (nil = no fork, 0 = already activated)
 	HertzfixBlock   *big.Int `json:"hertzfixBlock,omitempty" toml:",omitempty"`   // hertzfixBlock switch block (nil = no fork, 0 = already activated)
 
-	// Optional EIP-4844 parameters
-	MinBlobGasPrice            *uint64 `json:"minBlobGasPrice,omitempty"`
-	MaxBlobGasPerBlock         *uint64 `json:"maxBlobGasPerBlock,omitempty"`
-	TargetBlobGasPerBlock      *uint64 `json:"targetBlobGasPerBlock,omitempty"`
-	BlobGasPriceUpdateFraction *uint64 `json:"blobGasPriceUpdateFraction,omitempty"`
+	// Optional EIP-4844 parameters (see also EIP-7691 & EIP-7840)
+	MinBlobGasPrice *uint64       `json:"minBlobGasPrice,omitempty"`
+	BlobSchedule    *BlobSchedule `json:"blobSchedule,omitempty"`
 
 	// EIP-7691
 	MaxBlobGasPerBlockPrague         *uint64 `json:"maxBlobGasPerBlockPrague,omitempty"`
@@ -122,6 +121,57 @@ type Config struct {
 	BorJSON json.RawMessage `json:"bor,omitempty"`
 }
 
+type BlobConfig struct {
+	Target                *uint64 `json:"target,omitempty"`
+	Max                   *uint64 `json:"max,omitempty"`
+	BaseFeeUpdateFraction *uint64 `json:"baseFeeUpdateFraction,omitempty"`
+}
+
+// See EIP-7840: Add blob schedule to EL config files
+type BlobSchedule struct {
+	Cancun *BlobConfig `json:"cancun,omitempty"`
+	Prague *BlobConfig `json:"prague,omitempty"`
+}
+
+func (b *BlobSchedule) TargetBlobsPerBlock(isPrague bool) uint64 {
+	if isPrague {
+		if b != nil && b.Prague != nil && b.Prague.Target != nil {
+			return *b.Prague.Target
+		}
+		return 6 // EIP-7691
+	}
+	if b != nil && b.Cancun != nil && b.Cancun.Target != nil {
+		return *b.Cancun.Target
+	}
+	return 3 // EIP-4844
+}
+
+func (b *BlobSchedule) MaxBlobsPerBlock(isPrague bool) uint64 {
+	if isPrague {
+		if b != nil && b.Prague != nil && b.Prague.Max != nil {
+			return *b.Prague.Max
+		}
+		return 9 // EIP-7691
+	}
+	if b != nil && b.Cancun != nil && b.Cancun.Max != nil {
+		return *b.Cancun.Max
+	}
+	return 6 // EIP-4844
+}
+
+func (b *BlobSchedule) BaseFeeUpdateFraction(isPrague bool) uint64 {
+	if isPrague {
+		if b != nil && b.Prague != nil && b.Prague.BaseFeeUpdateFraction != nil {
+			return *b.Prague.BaseFeeUpdateFraction
+		}
+		return 5007716 // EIP-7691
+	}
+	if b != nil && b.Cancun != nil && b.Cancun.BaseFeeUpdateFraction != nil {
+		return *b.Cancun.BaseFeeUpdateFraction
+	}
+	return 3338477 // EIP-4844
+}
+
 type BorConfig interface {
 	fmt.Stringer
 	IsAgra(num uint64) bool
@@ -129,65 +179,48 @@ type BorConfig interface {
 	IsNapoli(num uint64) bool
 	GetNapoliBlock() *big.Int
 	IsAhmedabad(number uint64) bool
+	GetAhmedabadBlock() *big.Int
 	StateReceiverContractAddress() common.Address
 	CalculateSprintNumber(number uint64) uint64
 	CalculateSprintLength(number uint64) uint64
+}
+
+func timestampToTime(unixTime *big.Int) *time.Time {
+	if unixTime == nil {
+		return nil
+	}
+	t := time.Unix(unixTime.Int64(), 0).UTC()
+	return &t
 }
 
 func (c *Config) String() string {
 	engine := c.getEngine()
 
 	if c.Consensus == ParliaConsensus {
-		return fmt.Sprintf("{ChainID: %v Ramanujan: %v, Niels: %v, MirrorSync: %v, Bruno: %v, Euler: %v, Gibbs: %v, Nano: %v, Moran: %v, Planck: %v, Luban: %v, Plato: %v, Hertz: %v, Hertzfix: %v, ShanghaiTime: %v, KeplerTime %v, FeynmanTime %v, FeynmanFixTime %v, CancunTime %v, HaberTime %v, HaberFixTime %v, c.BohrTime %v, c.PascalTime %v, c.PragueTime %v, Engine: %v}",
+		return fmt.Sprintf("{ChainID: %v, Terminal Total Difficulty: %v, ShanghaiTime: %v, KeplerTime %v, FeynmanTime %v, FeynmanFixTime %v, CancunTime %v, HaberTime %v, HaberFixTime %v, c.BohrTime %v, c.PascalTime %v, c.PragueTime %v, Engine: %v}",
 			c.ChainID,
-			c.RamanujanBlock,
-			c.NielsBlock,
-			c.MirrorSyncBlock,
-			c.BrunoBlock,
-			c.EulerBlock,
-			c.GibbsBlock,
-			c.NanoBlock,
-			c.MoranBlock,
-			c.PlanckBlock,
-			c.LubanBlock,
-			c.PlatoBlock,
-			c.HertzBlock,
-			c.HertzfixBlock,
-			c.ShanghaiTime,
-			c.KeplerTime,
-			c.FeynmanTime,
-			c.FeynmanFixTime,
-			c.CancunTime,
-			c.HaberTime,
-			c.HaberFixTime,
-			c.BohrTime,
-			c.PascalTime,
-			c.PragueTime,
+			c.TerminalTotalDifficulty,
+			timestampToTime(c.ShanghaiTime),
+			timestampToTime(c.KeplerTime),
+			timestampToTime(c.FeynmanTime),
+			timestampToTime(c.FeynmanFixTime),
+			timestampToTime(c.CancunTime),
+			timestampToTime(c.HaberTime),
+			timestampToTime(c.HaberFixTime),
+			timestampToTime(c.BohrTime),
+			timestampToTime(c.PascalTime),
+			timestampToTime(c.PragueTime),
 			engine,
 		)
 	}
 
-	return fmt.Sprintf("{ChainID: %v, Homestead: %v, DAO: %v, Tangerine Whistle: %v, Spurious Dragon: %v, Byzantium: %v, Constantinople: %v, Petersburg: %v, Istanbul: %v, Muir Glacier: %v, Berlin: %v, London: %v, Arrow Glacier: %v, Gray Glacier: %v, Terminal Total Difficulty: %v, Merge Netsplit: %v, Shanghai: %v, Cancun: %v, Prague: %v, Osaka: %v, Engine: %v}",
+	return fmt.Sprintf("{ChainID: %v, Terminal Total Difficulty: %v, Shapella: %v, Dencun: %v, Pectra: %v, Fusaka: %v, Engine: %v}",
 		c.ChainID,
-		c.HomesteadBlock,
-		c.DAOForkBlock,
-		c.TangerineWhistleBlock,
-		c.SpuriousDragonBlock,
-		c.ByzantiumBlock,
-		c.ConstantinopleBlock,
-		c.PetersburgBlock,
-		c.IstanbulBlock,
-		c.MuirGlacierBlock,
-		c.BerlinBlock,
-		c.LondonBlock,
-		c.ArrowGlacierBlock,
-		c.GrayGlacierBlock,
 		c.TerminalTotalDifficulty,
-		c.MergeNetsplitBlock,
-		c.ShanghaiTime,
-		c.CancunTime,
-		c.PragueTime,
-		c.OsakaTime,
+		timestampToTime(c.ShanghaiTime),
+		timestampToTime(c.CancunTime),
+		timestampToTime(c.PragueTime),
+		timestampToTime(c.OsakaTime),
 		engine,
 	)
 }
@@ -334,50 +367,31 @@ func (c *Config) GetMinBlobGasPrice() uint64 {
 }
 
 func (c *Config) GetMaxBlobGasPerBlock(t uint64) uint64 {
-	if c != nil {
-		if c.IsPrague(t) {
-			if c.MaxBlobGasPerBlockPrague != nil {
-				return *c.MaxBlobGasPerBlockPrague
-			}
-			return 1179648 // EIP-7691
-		} else if c.MaxBlobGasPerBlock != nil {
-			return *c.MaxBlobGasPerBlock
-		}
-	}
-	return 786432 // MAX_BLOB_GAS_PER_BLOCK (EIP-4844)
-}
-
-func (c *Config) GetTargetBlobGasPerBlock(t uint64) uint64 {
-	if c != nil {
-		if c.IsPrague(t) {
-			if c.TargetBlobGasPerBlockPrague != nil {
-				return *c.TargetBlobGasPerBlockPrague
-			}
-			return 786432
-		} else if c.TargetBlobGasPerBlock != nil {
-			return *c.TargetBlobGasPerBlock
-		}
-	}
-	return 393216 // TARGET_BLOB_GAS_PER_BLOCK (EIP-4844)
-}
-
-func (c *Config) GetBlobGasPriceUpdateFraction(t uint64) uint64 {
-	if c != nil {
-		if c.IsPrague(t) {
-			if c.BlobGasPriceUpdateFractionPrague != nil {
-				return *c.BlobGasPriceUpdateFractionPrague
-			}
-			return 5007716
-
-		} else if c.BlobGasPriceUpdateFraction != nil {
-			return *c.BlobGasPriceUpdateFraction
-		}
-	}
-	return 3338477 // BLOB_GASPRICE_UPDATE_FRACTION (EIP-4844)
+	return c.GetMaxBlobsPerBlock(t) * fixedgas.BlobGasPerBlob
 }
 
 func (c *Config) GetMaxBlobsPerBlock(time uint64) uint64 {
-	return c.GetMaxBlobGasPerBlock(time) / fixedgas.BlobGasPerBlob
+	var b *BlobSchedule
+	if c != nil {
+		b = c.BlobSchedule
+	}
+	return b.MaxBlobsPerBlock(c.IsPrague(time))
+}
+
+func (c *Config) GetTargetBlobGasPerBlock(t uint64) uint64 {
+	var b *BlobSchedule
+	if c != nil {
+		b = c.BlobSchedule
+	}
+	return b.TargetBlobsPerBlock(c.IsPrague(t)) * fixedgas.BlobGasPerBlob
+}
+
+func (c *Config) GetBlobGasPriceUpdateFraction(t uint64) uint64 {
+	var b *BlobSchedule
+	if c != nil {
+		b = c.BlobSchedule
+	}
+	return b.BaseFeeUpdateFraction(c.IsPrague(t))
 }
 
 func (c *Config) SecondsPerSlot() uint64 {

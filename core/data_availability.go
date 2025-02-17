@@ -61,7 +61,9 @@ func IsDataAvailable(chain consensus.ChainHeaderReader, header *types.Header, bo
 	for _, s := range sidecars {
 		blobCnt += len(s.Blobs)
 	}
-	if blobCnt > params.MaxBlobGasPerBlock/params.BlobTxBlobGasPerBlob {
+
+	maxBlobPerBlock := chain.Config().GetMaxBlobsPerBlock(header.Time)
+	if blobCnt > int(maxBlobPerBlock) {
 		return fmt.Errorf("too many blobs in block: have %d, permitted %d", blobCnt, params.MaxBlobGasPerBlock/params.BlobTxBlobGasPerBlob)
 	}
 
